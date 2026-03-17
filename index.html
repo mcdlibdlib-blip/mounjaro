@@ -28,7 +28,6 @@ link.href = url;
 document.currentScript.after(link);
 </script>
 
-<!-- Apple touch icon (inline SVG → canvas → PNG) -->
 <style>
   :root {
     --green: #1D9E75;
@@ -40,6 +39,9 @@ document.currentScript.after(link);
     --red: #E24B4A;
     --red-light: #FCEBEB;
     --red-dark: #A32D2D;
+    --blue: #3B82F6;
+    --blue-light: #EFF6FF;
+    --blue-dark: #1E40AF;
     --bg: #f5f5f3;
     --card: #ffffff;
     --text: #1a1a18;
@@ -62,9 +64,11 @@ document.currentScript.after(link);
       --green-light: #0c3326;
       --amber-light: #2e1f05;
       --red-light: #2a0f0f;
+      --blue-light: #0f1f3d;
       --green: #25c490;
       --amber: #f5b84b;
       --red: #f06060;
+      --blue: #60a5fa;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -99,10 +103,39 @@ document.currentScript.after(link);
 
   /* Grid cards */
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
   .card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
   .card-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.02em; }
   .card-value { font-size: 20px; font-weight: 600; color: var(--text); }
   .card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* Dose card */
+  .dose-card { background: var(--blue-light); border: 0.5px solid var(--blue); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .dose-card-left .dose-card-label { font-size: 11px; color: var(--blue-dark); margin-bottom: 4px; }
+  .dose-card-left .dose-card-value { font-size: 24px; font-weight: 700; color: var(--blue); }
+  .dose-card-left .dose-card-sub { font-size: 12px; color: var(--blue-dark); margin-top: 2px; opacity: 0.8; }
+  .dose-icon { font-size: 28px; opacity: 0.6; }
+
+  /* Dose selector */
+  .dose-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dose-btn {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border2);
+    background: var(--card);
+    color: var(--text);
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .dose-btn.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .dose-btn:active { opacity: 0.75; transform: scale(0.96); }
 
   /* Status */
   .status-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
@@ -142,6 +175,27 @@ document.currentScript.after(link);
   /* History */
   .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
   .history-item:last-child { border-bottom: none; }
+  .history-dose-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--blue-light);
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    margin-left: 8px;
+  }
+  .history-item-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+  /* Week timeline */
+  .week-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .week-item:last-child { border-bottom: none; }
+  .week-num { font-size: 11px; font-weight: 600; color: var(--muted); min-width: 32px; }
+  .week-info { flex: 1; }
+  .week-date { font-size: 13px; color: var(--text); }
+  .week-dose { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--blue-light); color: var(--blue); margin-top: 3px; }
 
   /* Install banner */
   .install-banner { background: var(--green-light); border: 0.5px solid var(--green); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
@@ -189,6 +243,16 @@ document.currentScript.after(link);
     </div>
   </div>
 
+  <!-- Current dose card -->
+  <div class="dose-card" id="dose-card">
+    <div class="dose-card-left">
+      <div class="dose-card-label">현재 용량</div>
+      <div class="dose-card-value" id="current-dose-disp">—</div>
+      <div class="dose-card-sub" id="current-dose-sub">마운자로 티르제파타이드</div>
+    </div>
+    <div class="dose-icon">💉</div>
+  </div>
+
   <!-- Date cards -->
   <div class="grid2">
     <div class="card">
@@ -206,6 +270,21 @@ document.currentScript.after(link);
   <!-- Status -->
   <div class="status-card">
     <div id="status-badge"></div>
+  </div>
+
+  <!-- Dose selector -->
+  <div class="section">
+    <div class="section-title">용량 선택</div>
+    <div class="card" style="padding: 14px 16px;">
+      <div class="dose-selector" id="dose-selector">
+        <button class="dose-btn" data-dose="2.5mg" onclick="selectDose('2.5mg')">2.5mg</button>
+        <button class="dose-btn" data-dose="5mg" onclick="selectDose('5mg')">5mg</button>
+        <button class="dose-btn" data-dose="7.5mg" onclick="selectDose('7.5mg')">7.5mg</button>
+        <button class="dose-btn" data-dose="10mg" onclick="selectDose('10mg')">10mg</button>
+        <button class="dose-btn" data-dose="12.5mg" onclick="selectDose('12.5mg')">12.5mg</button>
+        <button class="dose-btn" data-dose="15mg" onclick="selectDose('15mg')">15mg</button>
+      </div>
+    </div>
   </div>
 
   <!-- Record today -->
@@ -232,9 +311,17 @@ document.currentScript.after(link);
     </div>
   </div>
 
+  <!-- Week timeline -->
+  <div class="section">
+    <div class="section-title">주차별 용량 기록</div>
+    <div class="card" id="week-list">
+      <p style="font-size:13px; color:var(--muted);">아직 기록이 없어요.</p>
+    </div>
+  </div>
+
   <!-- History -->
   <div class="section">
-    <div class="section-title">기록</div>
+    <div class="section-title">전체 기록</div>
     <div class="card" id="history-list">
       <p style="font-size:13px; color:var(--muted);">아직 기록이 없어요.</p>
     </div>
@@ -245,13 +332,29 @@ document.currentScript.after(link);
 <script>
 const STORAGE_KEY = 'mounjaro_last';
 const HISTORY_KEY = 'mounjaro_history';
-const BANNER_KEY = 'mounjaro_banner';
+const BANNER_KEY  = 'mounjaro_banner';
+const DOSE_KEY    = 'mounjaro_dose';
 const DAYS = 7;
 const WD = ['일','월','화','수','목','금','토'];
+const DOSES = ['2.5mg','5mg','7.5mg','10mg','12.5mg','15mg'];
 
 function pad2(n) { return String(n).padStart(2,'0'); }
 function toISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function fromISO(s) { return new Date(s + 'T00:00:00'); }
+
+function getCurrentDose() {
+  try { return localStorage.getItem(DOSE_KEY) || '5mg'; } catch(e) { return '5mg'; }
+}
+
+function setCurrentDose(dose) {
+  try { localStorage.setItem(DOSE_KEY, dose); } catch(e) {}
+}
+
+function selectDose(dose) {
+  setCurrentDose(dose);
+  renderDoseSelector();
+  renderDoseCard();
+}
 
 function getLastDate() {
   try {
@@ -261,28 +364,43 @@ function getLastDate() {
   return fromISO('2026-03-17');
 }
 
-function saveDate(d) {
+function saveDate(d, dose) {
   try {
     localStorage.setItem(STORAGE_KEY, toISO(d));
     const hist = getHistory();
     const iso = toISO(d);
-    if (!hist.includes(iso)) {
-      hist.unshift(iso);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0,10)));
-    }
+    // Remove existing entry for same date if any
+    const filtered = hist.filter(e => e.iso !== iso);
+    filtered.unshift({ iso, dose: dose || getCurrentDose() });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, 20)));
   } catch(e) {}
 }
 
 function getHistory() {
   try {
     const s = localStorage.getItem(HISTORY_KEY);
-    return s ? JSON.parse(s) : [];
+    if (!s) return [];
+    const parsed = JSON.parse(s);
+    // Backward compat: old entries were plain strings
+    return parsed.map(e => typeof e === 'string' ? { iso: e, dose: null } : e);
   } catch(e) { return []; }
 }
 
 function dismissBanner() {
   document.getElementById('install-banner').style.display = 'none';
   try { localStorage.setItem(BANNER_KEY, '1'); } catch(e) {}
+}
+
+function renderDoseSelector() {
+  const cur = getCurrentDose();
+  document.querySelectorAll('.dose-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dose === cur);
+  });
+}
+
+function renderDoseCard() {
+  const dose = getCurrentDose();
+  document.getElementById('current-dose-disp').textContent = dose;
 }
 
 function render() {
@@ -325,17 +443,46 @@ function render() {
 
   document.getElementById('manual-date').value = toISO(last);
 
+  renderDoseSelector();
+  renderDoseCard();
+
   const hist = getHistory();
+
+  // Week timeline
+  const weekEl = document.getElementById('week-list');
+  if (hist.length === 0) {
+    weekEl.innerHTML = '<p style="font-size:13px;color:var(--muted);">아직 기록이 없어요.</p>';
+  } else {
+    weekEl.innerHTML = hist.map((entry, i) => {
+      const d = fromISO(entry.iso);
+      const weekNum = hist.length - i;
+      const doseLabel = entry.dose ? entry.dose : '—';
+      return `<div class="week-item">
+        <div class="week-num">${weekNum}회차</div>
+        <div class="week-info">
+          <div class="week-date">${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${WD[d.getDay()]})</div>
+          <div class="week-dose">${doseLabel}</div>
+        </div>
+        ${i === 0 ? '<span style="font-size:11px;background:var(--green-light);color:var(--green-dark);padding:2px 7px;border-radius:999px;">최근</span>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Full history
   const histEl = document.getElementById('history-list');
   if (hist.length === 0) {
     histEl.innerHTML = '<p style="font-size:13px;color:var(--muted);">아직 기록이 없어요.</p>';
   } else {
-    histEl.innerHTML = hist.map((iso, i) => {
-      const d = fromISO(iso);
-      const label = i === 0 ? '<span style="font-size:11px;background:var(--green-light);color:var(--green-dark);padding:2px 7px;border-radius:999px;">최근</span>' : '';
+    histEl.innerHTML = hist.map((entry, i) => {
+      const d = fromISO(entry.iso);
+      const recentLabel = i === 0 ? '<span style="font-size:11px;background:var(--green-light);color:var(--green-dark);padding:2px 7px;border-radius:999px;margin-left:6px;">최근</span>' : '';
+      const doseBadge = entry.dose ? `<span class="history-dose-badge">${entry.dose}</span>` : '';
       return `<div class="history-item">
-        <span style="font-size:14px;">${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${WD[d.getDay()]})</span>
-        ${label}
+        <div class="history-item-left">
+          <span style="font-size:14px;">${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${WD[d.getDay()]})</span>
+          ${doseBadge}
+          ${recentLabel}
+        </div>
       </div>`;
     }).join('');
   }
@@ -349,7 +496,7 @@ function render() {
 
 function recordToday() {
   const today = new Date(); today.setHours(0,0,0,0);
-  saveDate(today);
+  saveDate(today, getCurrentDose());
   render();
   const btn = document.querySelector('.btn-primary');
   const orig = btn.textContent;
@@ -361,7 +508,7 @@ function recordToday() {
 function recordManual() {
   const val = document.getElementById('manual-date').value;
   if (!val) return;
-  saveDate(fromISO(val));
+  saveDate(fromISO(val), getCurrentDose());
   render();
 }
 
