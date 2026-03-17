@@ -22,15 +22,15 @@
         };
       };
     };
-  };
 
-  workspace = {
-    onCreate = {
-      install-claude-code = "npm install -g @anthropic-ai/claude-code";
-      default.openFiles = [ "style.css" "main.js" "index.html" ];
-    };
-    onStart = {
-      ensure-claude-code = "which claude || npm install -g @anthropic-ai/claude-code";
+    workspace = {
+      onCreate = {
+        install-claude-code = "npm install -g @anthropic-ai/claude-code";
+        default.openFiles = [ "style.css" "main.js" "index.html" ];
+      };
+      onStart = {
+        ensure-claude-code = "which claude || npm install -g @anthropic-ai/claude-code";
+      };
     };
   };
 }
