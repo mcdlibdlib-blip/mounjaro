@@ -1,0 +1,16 @@
+{
+  "appId": "com.mounjaro.tracker",
+  "appName": "마운자로 트래커",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f5f5f3"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#1D9E75"
+    }
+  }
+}

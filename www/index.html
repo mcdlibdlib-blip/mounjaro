@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="마운자로">
+<meta name="theme-color" content="#1D9E75">
+<title>마운자로 트래커</title>
+
+<!-- PWA Manifest inline -->
+<script>
+const manifestData = {
+  name: "마운자로 주사 트래커",
+  short_name: "마운자로",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#f5f5f3",
+  theme_color: "#1D9E75",
+  icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231D9E75'/><path d='M28 50l16 16 28-28' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>", sizes: "192x192", type: "image/svg+xml" }]
+};
+const blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+const url = URL.createObjectURL(blob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = url;
+document.currentScript.after(link);
+</script>
+
+<style>
+  :root {
+    --green: #1D9E75;
+    --green-dark: #0F6E56;
+    --green-light: #E1F5EE;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --amber-dark: #854F0B;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --red-dark: #A32D2D;
+    --blue: #3B82F6;
+    --blue-light: #EFF6FF;
+    --blue-dark: #1E40AF;
+    --bg: #f5f5f3;
+    --card: #ffffff;
+    --text: #1a1a18;
+    --muted: #6b6b68;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111110;
+      --card: #1e1e1c;
+      --text: #f0ede8;
+      --muted: #9e9b96;
+      --border: rgba(255,255,255,0.09);
+      --border2: rgba(255,255,255,0.16);
+      --green-light: #0c3326;
+      --amber-light: #2e1f05;
+      --red-light: #2a0f0f;
+      --blue-light: #0f1f3d;
+      --green: #25c490;
+      --amber: #f5b84b;
+      --red: #f06060;
+      --blue: #60a5fa;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    padding-top: calc(var(--safe-top) + 16px);
+    padding-bottom: calc(var(--safe-bottom) + 16px);
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: hidden;
+  }
+  .wrapper { max-width: 390px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .header-icon { width: 36px; height: 36px; background: var(--green); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* Ring */
+  .ring-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
+  .ring-container { position: relative; width: 160px; height: 160px; }
+  .ring-track { fill: none; stroke: var(--border); stroke-width: 12; }
+  .ring-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1), stroke 0.4s; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .ring-num { font-size: 44px; font-weight: 700; line-height: 1; color: var(--text); }
+  .ring-label { font-size: 13px; color: var(--muted); }
+
+  /* Grid cards */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.02em; }
+  .card-value { font-size: 20px; font-weight: 600; color: var(--text); }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* Dose card */
+  .dose-card { background: var(--blue-light); border: 0.5px solid var(--blue); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .dose-card-left .dose-card-label { font-size: 11px; color: var(--blue-dark); margin-bottom: 4px; }
+  .dose-card-left .dose-card-value { font-size: 24px; font-weight: 700; color: var(--blue); }
+  .dose-card-left .dose-card-sub { font-size: 12px; color: var(--blue-dark); margin-top: 2px; opacity: 0.8; }
+  .dose-icon { font-size: 28px; opacity: 0.6; }
+
+  /* Dose selector */
+  .dose-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dose-btn {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border2);
+    background: var(--card);
+    color: var(--text);
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .dose-btn.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+  }
+  .dose-btn:active { opacity: 0.75; transform: scale(0.96); }
+
+  /* Status */
+  .status-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+  .badge-ok { background: var(--green-light); color: var(--green-dark); }
+  .badge-warn { background: var(--amber-light); color: var(--amber-dark); }
+  .badge-danger { background: var(--red-light); color: var(--red-dark); }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  /* Buttons */
+  .btn-primary { width: 100%; padding: 14px; background: var(--green); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; font-family: inherit; }
+  .btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+  .btn-secondary { padding: 12px 18px; background: var(--card); color: var(--text); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+  .btn-secondary:active { opacity: 0.7; }
+
+  /* Input */
+  input[type=date] {
+    flex: 1;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    color: var(--text);
+    font-family: inherit;
+    -webkit-appearance: none;
+  }
+
+  /* Section */
+  .section { margin-bottom: 12px; }
+  .section-title { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; padding-left: 4px; }
+
+  /* Notif */
+  .notif-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .notif-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* History */
+  .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-dose-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--blue-light);
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    margin-left: 8px;
+  }
+  .history-item-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+  /* Week timeline */
+  .week-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .week-item:last-child { border-bottom: none; }
+  .week-num { font-size: 11px; font-weight: 600; color: var(--muted); min-width: 32px; }
+  .week-info { flex: 1; }
+  .week-date { font-size: 13px; color: var(--text); }
+  .week-dose { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--blue-light); color: var(--blue); margin-top: 3px; }
+
+  /* Install banner */
+  .install-banner { background: var(--green-light); border: 0.5px solid var(--green); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
+  .install-banner p { font-size: 13px; color: var(--green-dark); line-height: 1.5; }
+  .install-close { background: none; border: none; color: var(--green-dark); font-size: 18px; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Install hint (iOS Safari only) -->
+  <div class="install-banner" id="install-banner">
+    <div style="flex:1">
+      <p><strong>홈 화면에 추가하기</strong><br>사파리 하단 <strong>공유 버튼</strong> → <strong>"홈 화면에 추가"</strong>를 탭하면 앱처럼 사용할 수 있어요!</p>
+    </div>
+    <button class="install-close" onclick="dismissBanner()">✕</button>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M4 10l5 5 7-7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">마운자로 트래커</div>
+      <div class="header-sub">매주 1회 피하주사</div>
+    </div>
+  </div>
+
+  <!-- Ring -->
+  <div class="ring-wrap">
+    <div class="ring-container">
+      <svg width="160" height="160" viewBox="0 0 160 160" style="position:absolute;inset:0;">
+        <circle class="ring-track" cx="80" cy="80" r="66"/>
+        <circle class="ring-fill" id="ring" cx="80" cy="80" r="66"
+          stroke-dasharray="414.7" stroke-dashoffset="414.7"
+          transform="rotate(-90 80 80)"/>
+      </svg>
+      <div class="ring-center">
+        <span class="ring-num" id="days-num">—</span>
+        <span class="ring-label">일 남음</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Current dose card -->
+  <div class="dose-card" id="dose-card">
+    <div class="dose-card-left">
+      <div class="dose-card-label">현재 용량</div>
+      <div class="dose-card-value" id="current-dose-disp">—</div>
+      <div class="dose-card-sub" id="current-dose-sub">마운자로 티르제파타이드</div>
+    </div>
+    <div class="dose-icon">💉</div>
+  </div>
+
+  <!-- Date cards -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-label">마지막 주사</div>
+      <div class="card-value" id="last-date-disp">—</div>
+      <div class="card-sub" id="last-sub"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">다음 주사</div>
+      <div class="card-value" id="next-date-disp">—</div>
+      <div class="card-sub" id="next-sub"></div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card">
+    <div id="status-badge"></div>
+  </div>
+
+  <!-- Dose selector -->
+  <div class="section">
+    <div class="section-title">용량 선택</div>
+    <div class="card" style="padding: 14px 16px;">
+      <div class="dose-selector" id="dose-selector">
+        <button class="dose-btn" data-dose="2.5mg" onclick="selectDose('2.5mg')">2.5mg</button>
+        <button class="dose-btn" data-dose="5mg" onclick="selectDose('5mg')">5mg</button>
+        <button class="dose-btn" data-dose="7.5mg" onclick="selectDose('7.5mg')">7.5mg</button>
+        <button class="dose-btn" data-dose="10mg" onclick="selectDose('10mg')">10mg</button>
+        <button class="dose-btn" data-dose="12.5mg" onclick="selectDose('12.5mg')">12.5mg</button>
+        <button class="dose-btn" data-dose="15mg" onclick="selectDose('15mg')">15mg</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record today -->
+  <div class="section">
+    <button class="btn-primary" onclick="recordToday()">오늘 주사 맞았어요 ✓</button>
+  </div>
+
+  <!-- Manual date -->
+  <div class="section">
+    <div class="section-title">날짜 직접 입력</div>
+    <div class="card" style="display:flex; gap:8px; padding:12px;">
+      <input type="date" id="manual-date"/>
+      <button class="btn-secondary" onclick="recordManual()">저장</button>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div class="section">
+    <div class="section-title">알림</div>
+    <div class="card">
+      <p class="notif-note">다음 주사일 오전 9시에 알림을 받아요.<br>(페이지가 열려있을 때만 작동해요)</p>
+      <button class="btn-secondary" id="notif-btn" onclick="requestNotif()">알림 허용하기</button>
+      <p class="notif-status" id="notif-status"></p>
+    </div>
+  </div>
+
+  <!-- Week timeline -->
+  <div class="section">
+    <div class="section-title">주차별 용량 기록</div>
+    <div class="card" id="week-list">
+      <p style="font-size:13px; color:var(--muted);">아직 기록이 없어요.</p>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section">
+    <div class="section-title">전체 기록</div>
+    <div class="card" id="history-list">
+      <p style="font-size:13px; color:var(--muted);">아직 기록이 없어요.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'mounjaro_last';
+const HISTORY_KEY = 'mounjaro_history';
+const BANNER_KEY  = 'mounjaro_banner';
+const DOSE_KEY    = 'mounjaro_dose';
+const DAYS = 7;
+const WD = ['일','월','화','수','목','금','토'];
+const DOSES = ['2.5mg','5mg','7.5mg','10mg','12.5mg','15mg'];
+
+function pad2(n) { return String(n).padStart(2,'0'); }
+function toISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function fromISO(s) { return new Date(s + 'T00:00:00'); }
+
+function getCurrentDose() {
+  try { return localStorage.getItem(DOSE_KEY) || '5mg'; } catch(e) { return '5mg'; }
+}
+
+function setCurrentDose(dose) {
+  try { localStorage.setItem(DOSE_KEY, dose); } catch(e) {}
+}
+
+function selectDose(dose) {
+  setCurrentDose(dose);
+  renderDoseSelector();
+  renderDoseCard();
+}
+
+function getLastDate() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) return fromISO(s);
+  } catch(e) {}
+  return fromISO('2026-03-17');
+}
+
+function saveDate(d, dose) {
+  try {
+    localStorage.setItem(STORAGE_KEY, toISO(d));
+    const hist = getHistory();
+    const iso = toISO(d);
+    // Remove existing entry for same date if any
+    const filtered = hist.filter(e => e.iso !== iso);
+    filtered.unshift({ iso, dose: dose || getCurrentDose() });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, 20)));
+  } catch(e) {}
+}
+
+function getHistory() {
+  try {
+    const s = localStorage.getItem(HISTORY_KEY);
+    if (!s) return [];
+    const parsed = JSON.parse(s);
+    // Backward compat: old entries were plain strings
+    return parsed.map(e => typeof e === 'string' ? { iso: e, dose: null } : e);
+  } catch(e) { return []; }
+}
+
+function dismissBanner() {
+  document.getElementById('install-banner').style.display = 'none';
+  try { localStorage.setItem(BANNER_KEY, '1'); } catch(e) {}
+}
+
+function renderDoseSelector() {
+  const cur = getCurrentDose();
+  document.querySelectorAll('.dose-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dose === cur);
+  });
+}
+
+function renderDoseCard() {
+  const dose = getCurrentDose();
+  document.getElementById('current-dose-disp').textContent = dose;
+}
+
+function render() {
+  const last = getLastDate();
+  const next = new Date(last);
+  next.setDate(next.getDate() + DAYS);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.round((next - today) / 86400000);
+  const lastDaysAgo = Math.abs(Math.round((today - last) / 86400000));
+
+  document.getElementById('last-date-disp').textContent =
+    `${last.getMonth()+1}/${last.getDate()} (${WD[last.getDay()]})`;
+  document.getElementById('last-sub').textContent = `${lastDaysAgo}일 전`;
+
+  document.getElementById('next-date-disp').textContent =
+    `${next.getMonth()+1}/${next.getDate()} (${WD[next.getDay()]})`;
+  document.getElementById('next-sub').textContent =
+    diffDays > 0 ? `${diffDays}일 후` : diffDays === 0 ? '오늘!' : `${Math.abs(diffDays)}일 지남`;
+
+  const num = document.getElementById('days-num');
+  num.textContent = diffDays >= 0 ? diffDays : '!';
+
+  const circ = 2 * Math.PI * 66;
+  const pct = Math.max(0, Math.min(1, diffDays / DAYS));
+  const ring = document.getElementById('ring');
+  ring.style.strokeDashoffset = circ * (1 - pct);
+  ring.style.stroke = diffDays <= 1 ? 'var(--red)' : diffDays <= 2 ? 'var(--amber)' : 'var(--green)';
+
+  const badge = document.getElementById('status-badge');
+  if (diffDays < 0) {
+    badge.innerHTML = '<span class="badge badge-danger"><span class="badge-dot"></span>주사가 늦었어요 — 빨리 맞으세요!</span>';
+  } else if (diffDays === 0) {
+    badge.innerHTML = '<span class="badge badge-warn"><span class="badge-dot"></span>오늘 주사 맞는 날이에요!</span>';
+  } else if (diffDays <= 2) {
+    badge.innerHTML = `<span class="badge badge-warn"><span class="badge-dot"></span>곧 주사일이에요 (${diffDays}일 후)</span>`;
+  } else {
+    badge.innerHTML = `<span class="badge badge-ok"><span class="badge-dot"></span>정상 — ${diffDays}일 남았어요</span>`;
+  }
+
+  document.getElementById('manual-date').value = toISO(last);
+
+  renderDoseSelector();
+  renderDoseCard();
+
+  const hist = getHistory();
+
+  // Week timeline
+  const weekEl = document.getElementById('week-list');
+  if (hist.length === 0) {
+    weekEl.innerHTML = '<p style="font-size:13px;color:var(--muted);">아직 기록이 없어요.</p>';
+  } else {
+    weekEl.innerHTML = hist.map((entry, i) => {
+      const d = fromISO(entry.iso);
+      const weekNum = hist.length - i;
+      const doseLabel = entry.dose ? entry.dose : '—';
+      return `<div class="week-item">
+        <div class="week-num">${weekNum}회차</div>
+        <div class="week-info">
+          <div class="week-date">${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${WD[d.getDay()]})</div>
+          <div class="week-dose">${doseLabel}</div>
+        </div>
+        ${i === 0 ? '<span style="font-size:11px;background:var(--green-light);color:var(--green-dark);padding:2px 7px;border-radius:999px;">최근</span>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Full history
+  const histEl = document.getElementById('history-list');
+  if (hist.length === 0) {
+    histEl.innerHTML = '<p style="font-size:13px;color:var(--muted);">아직 기록이 없어요.</p>';
+  } else {
+    histEl.innerHTML = hist.map((entry, i) => {
+      const d = fromISO(entry.iso);
+      const recentLabel = i === 0 ? '<span style="font-size:11px;background:var(--green-light);color:var(--green-dark);padding:2px 7px;border-radius:999px;margin-left:6px;">최근</span>' : '';
+      const doseBadge = entry.dose ? `<span class="history-dose-badge">${entry.dose}</span>` : '';
+      return `<div class="history-item">
+        <div class="history-item-left">
+          <span style="font-size:14px;">${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()}. (${WD[d.getDay()]})</span>
+          ${doseBadge}
+          ${recentLabel}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  try {
+    if (localStorage.getItem(BANNER_KEY)) {
+      document.getElementById('install-banner').style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+function recordToday() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  saveDate(today, getCurrentDose());
+  render();
+  const btn = document.querySelector('.btn-primary');
+  const orig = btn.textContent;
+  btn.textContent = '저장되었어요 ✓';
+  btn.style.background = 'var(--green-dark)';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
+}
+
+function recordManual() {
+  const val = document.getElementById('manual-date').value;
+  if (!val) return;
+  saveDate(fromISO(val), getCurrentDose());
+  render();
+}
+
+function requestNotif() {
+  if (!('Notification' in window)) {
+    document.getElementById('notif-status').textContent = '이 브라우저는 알림을 지원하지 않아요.';
+    return;
+  }
+  Notification.requestPermission().then(perm => {
+    const btn = document.getElementById('notif-btn');
+    const status = document.getElementById('notif-status');
+    if (perm === 'granted') {
+      status.textContent = '알림 허용됨! 다음 주사일 오전 9시에 울려요.';
+      btn.textContent = '설정됨';
+      btn.disabled = true;
+      scheduleNotif();
+    } else {
+      status.textContent = '알림이 거부되었어요. 설정 > Safari에서 허용해 주세요.';
+    }
+  });
+}
+
+function scheduleNotif() {
+  const last = getLastDate();
+  const next = new Date(last);
+  next.setDate(next.getDate() + DAYS);
+  next.setHours(9,0,0,0);
+  const ms = next - Date.now();
+  if (ms > 0) {
+    setTimeout(() => {
+      new Notification('마운자로 주사 알림 💉', {
+        body: '오늘 마운자로 주사 맞는 날이에요! 잊지 마세요.',
+      });
+    }, ms);
+  }
+}
+
+render();
+</script>
+</body>
+</html>

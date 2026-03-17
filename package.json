@@ -1,0 +1,27 @@
+{
+  "name": "new-project",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "sync": "cp index.html www/index.html && npx cap sync android",
+    "open": "npx cap open android",
+    "build:android": "cp index.html www/index.html && npx cap sync android && npx cap open android"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcdlibdlib-blip/new-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mcdlibdlib-blip/new-project/issues"
+  },
+  "homepage": "https://github.com/mcdlibdlib-blip/new-project#readme",
+  "description": "",
+  "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0"
+  }
+}
